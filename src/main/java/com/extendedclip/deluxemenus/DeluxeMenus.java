@@ -18,6 +18,8 @@ import com.extendedclip.deluxemenus.placeholder.Expansion;
 import com.extendedclip.deluxemenus.updatechecker.UpdateChecker;
 import com.extendedclip.deluxemenus.utils.DebugLevel;
 import com.extendedclip.deluxemenus.utils.Messages;
+import com.extendedclip.deluxemenus.scheduler.PluginScheduler;
+import com.extendedclip.deluxemenus.scheduler.PluginSchedulerFactory;
 import com.extendedclip.deluxemenus.utils.VersionHelper;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
@@ -58,6 +60,7 @@ public class DeluxeMenus extends JavaPlugin {
 
     private final GeneralConfig generalConfig = new GeneralConfig(this);
     private DeluxeMenusConfig menuConfig;
+    private PluginScheduler scheduler;
 
     @Override
     public void onLoad() {
@@ -75,6 +78,7 @@ public class DeluxeMenus extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        this.scheduler = PluginSchedulerFactory.create(this);
         this.generalConfig.load();
 
         if (!hookIntoPlaceholderAPI()) {
@@ -113,7 +117,9 @@ public class DeluxeMenus extends JavaPlugin {
     public void onDisable() {
         Bukkit.getMessenger().unregisterOutgoingPluginChannel(this, "BungeeCord");
 
-        Bukkit.getScheduler().cancelTasks(this);
+        if (this.scheduler != null) {
+            this.scheduler.cancelTasks(this);
+        }
 
         if (this.audiences != null) {
             this.audiences.close();
@@ -215,6 +221,10 @@ public class DeluxeMenus extends JavaPlugin {
 
     public GeneralConfig getGeneralConfig() {
         return generalConfig;
+    }
+
+    public PluginScheduler getScheduler() {
+        return scheduler;
     }
 
     private boolean hookIntoPlaceholderAPI() {

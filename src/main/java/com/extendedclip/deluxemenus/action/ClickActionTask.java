@@ -15,7 +15,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -26,7 +25,21 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Level;
 
-public class ClickActionTask extends BukkitRunnable {
+public class ClickActionTask {
+
+    /**
+     * Schedules this task to run on the player's region (Folia) or next tick (Bukkit).
+     */
+    public void runTask(DeluxeMenus plugin, Player player) {
+        plugin.getScheduler().runSync(plugin, player, this::run);
+    }
+
+    /**
+     * Schedules this task to run after the given delay on the player's region (Folia) or main thread (Bukkit).
+     */
+    public void runTaskLater(DeluxeMenus plugin, Player player, long delayTicks) {
+        plugin.getScheduler().runSyncDelayed(plugin, player, this::run, delayTicks);
+    }
 
     private final DeluxeMenus plugin;
     private final UUID uuid;
@@ -55,7 +68,6 @@ public class ClickActionTask extends BukkitRunnable {
         this.parsePlaceholdersAfterArguments = parsePlaceholdersAfterArguments;
     }
 
-    @Override
     public void run() {
         final Player player = Bukkit.getPlayer(this.uuid);
         if (player == null) {

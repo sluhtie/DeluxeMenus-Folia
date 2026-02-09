@@ -47,17 +47,23 @@ public class MMOItemsHook implements ItemHook, SimpleCache {
 
         ItemStack mmoItem = null;
         try {
-            mmoItem = Bukkit.getScheduler().callSyncMethod(plugin, () -> {
-                ItemStack item = MMOItems.plugin.getItem(itemType, splitArgs[1]);
+            // MMOItems getItem must run on main thread / entity region; we need a player context.
+            // When called from menu building we may be async - use first online player for region on Folia, or block.
+            org.bukkit.entity.Player anyPlayer = Bukkit.getOnlinePlayers().stream().findFirst().orElse(null);
+            if (anyPlayer != null) {
+                java.util.concurrent.CompletableFuture<ItemStack> future = plugin.getScheduler().runSyncWithResult(plugin, anyPlayer, () -> {
+                    ItemStack item = MMOItems.plugin.getItem(itemType, splitArgs[1]);
 
-                if (item == null) {
-                    return new ItemStack(Material.STONE, 1);
-                }
+                    if (item == null) {
+                        return new ItemStack(Material.STONE, 1);
+                    }
 
-                cache.put(arguments[0], item);
+                    cache.put(arguments[0], item);
 
-                return item;
-            }).get();
+                    return item;
+                });
+                mmoItem = future.get();
+            }
         } catch (InterruptedException | ExecutionException e) {
             plugin.debug(DebugLevel.HIGHEST, Level.SEVERE, "Error getting MMOItem synchronously.");
         }

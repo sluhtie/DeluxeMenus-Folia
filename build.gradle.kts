@@ -14,6 +14,7 @@ version = "$majorVersion-$minorVersion"
 
 repositories {
     mavenCentral()
+    maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://s01.oss.sonatype.org/content/repositories/snapshots/")
     maven("https://repo.extendedclip.com/content/repositories/placeholderapi/")
     maven("https://repo.glaremasters.me/repository/public/")
@@ -25,7 +26,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly(libs.spigot)
+    // Paper API includes Spigot and adds Folia scheduler support
+    compileOnly("io.papermc.paper:paper-api:1.21.5-R0.1-SNAPSHOT")
 
     compileOnly(libs.vault)
     compileOnly(libs.authlib)
