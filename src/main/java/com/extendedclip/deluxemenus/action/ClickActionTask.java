@@ -12,6 +12,7 @@ import com.extendedclip.deluxemenus.utils.StringUtils;
 import com.extendedclip.deluxemenus.utils.VersionHelper;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
@@ -20,10 +21,13 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 public class ClickActionTask {
 
@@ -128,9 +132,13 @@ public class ClickActionTask {
                 break;
 
             case CONSOLE:
-                // On Folia, dispatchCommand must run on the global region, not the entity region
-                plugin.getScheduler().runSync(plugin, () ->
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), executable));
+                // On Folia, dispatchCommand must run on the global tick thread. Schedule with 1 tick delay
+                // so the task definitely runs on the global region, not the current entity region.
+                // Resolve common placeholders again so the string is fully resolved when the lambda runs
+                // (PlaceholderAPI may not resolve correctly when called from entity region on Folia).
+                final String commandForConsole = resolveConsoleCommandPlaceholders(executable, target);
+                plugin.getScheduler().runSyncDelayed(plugin, () ->
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandForConsole), 1L);
                 break;
 
             case MINI_MESSAGE:
@@ -488,5 +496,47 @@ public class ClickActionTask {
             default:
                 break;
         }
+    }
+
+    /**
+     * Replaces common player placeholders in the command string so it is fully resolved
+     * when dispatched on the global region (where PlaceholderAPI context may not be available).
+     * Also normalizes give-command item names to minecraft:item_name (lowercase) for 1.21+.
+     */
+    private static String resolveConsoleCommandPlaceholders(String command, Player target) {
+        if (target == null) {
+            return command;
+        }
+        String result = command
+                .replace("%player_name%", target.getName())
+                .replace("%player_uuid%", target.getUniqueId().toString())
+                .replace("%player_displayname%", target.getDisplayName() != null ? target.getDisplayName() : target.getName());
+        return normalizeItemIdsInCommand(result);
+    }
+
+    private static final Set<String> MATERIAL_NAMES = Arrays.stream(Material.values())
+            .map(Material::name)
+            .collect(Collectors.toUnmodifiableSet());
+
+    /**
+     * In 1.21+, vanilla (and many plugin) commands expect item IDs as minecraft:item_name (lowercase).
+     * Normalizes any token in the command that matches a known Material name, regardless of command type.
+     * E.g. "give x GOLD_BLOCK 1", "clear x GOLD_BLOCK", "recipe give x diamond_sword" all get fixed.
+     */
+    private static String normalizeItemIdsInCommand(String command) {
+        if (command == null) {
+            return command;
+        }
+        String[] parts = command.split("\\s+");
+        for (int i = 0; i < parts.length; i++) {
+            String token = parts[i];
+            if (token.isEmpty() || token.contains(":") || token.startsWith("[") || token.startsWith("{")) {
+                continue;
+            }
+            if (MATERIAL_NAMES.contains(token.toUpperCase(Locale.ROOT))) {
+                parts[i] = "minecraft:" + token.toLowerCase(Locale.ROOT);
+            }
+        }
+        return String.join(" ", parts);
     }
 }
