@@ -128,7 +128,9 @@ public class ClickActionTask {
                 break;
 
             case CONSOLE:
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), executable);
+                // On Folia, dispatchCommand must run on the global region, not the entity region
+                plugin.getScheduler().runSync(plugin, () ->
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), executable));
                 break;
 
             case MINI_MESSAGE:
