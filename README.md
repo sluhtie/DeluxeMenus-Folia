@@ -1,4 +1,4 @@
-<img width="1700" height="446" alt="grafik" src="https://github.com/user-attachments/assets/ba59419b-a94c-4255-a719-917f01c439c2" />
+[logo]: https://github.com/user-attachments/assets/ba59419b-a94c-4255-a719-917f01c439c2
 
 [issues]: https://github.com/HelpChat/DeluxeMenus/issues
 [licenseImg]: https://img.shields.io/github/license/helpchat/deluxemenus?&logo=github
